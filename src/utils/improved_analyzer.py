@@ -4,6 +4,29 @@ import numpy as np
 import re
 import math
 
+# Ensure this import is present (already at the top of the file)
+# import numpy as np
+
+def convert_numpy_types(data):
+    if isinstance(data, dict):
+        return {k: convert_numpy_types(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [convert_numpy_types(i) for i in data]
+    elif isinstance(data, tuple): # Added tuple handling
+        return tuple(convert_numpy_types(i) for i in data)
+    elif isinstance(data, (np.int_, np.intc, np.intp, np.int8,
+                           np.int16, np.int32, np.int64, np.uint8,
+                           np.uint16, np.uint32, np.uint64)):
+        return int(data)
+    elif isinstance(data, (np.float_, np.float16, np.float32, np.float64)):
+        return float(data)
+    elif isinstance(data, np.bool_):
+        return bool(data)
+    elif isinstance(data, np.ndarray):
+        # Convert array to list, then recursively process the list's elements
+        return convert_numpy_types(data.tolist())
+    return data
+
 def improve_angle_detection(image_path):
     """
     개선된 각도 검출 알고리즘
@@ -57,6 +80,9 @@ def improve_angle_detection(image_path):
         'angles': angles,
         'total_angles': len(angles)
     }
+    
+    # Convert NumPy types in the result to native Python types
+    result = convert_numpy_types(result)
     
     return result
 

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 import os
 import cv2
 import numpy as np
@@ -21,6 +21,19 @@ os.makedirs(RESULT_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def log_numpy_types(data, path="result"):
+    if isinstance(data, dict):
+        for k, v in data.items():
+            log_numpy_types(v, path=f"{path}.{k}")
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            log_numpy_types(item, path=f"{path}[{i}]")
+    elif isinstance(data, tuple):
+        for i, item in enumerate(data):
+            log_numpy_types(item, path=f"{path}({i})")
+    elif isinstance(data, (np.generic, np.ndarray)): # Check for any numpy generic type or array
+        current_app.logger.warning(f"NumPy type found at {path}: {type(data)} - Value: {data}")
 
 @analyze_bp.route('/api/analyze', methods=['POST'])
 def analyze_drawing():
@@ -48,10 +61,15 @@ def analyze_drawing():
         # 이미지 분석 수행
         analysis_result = process_drawing_image(file_path)
         
+        current_app.logger.info("Performing pre-serialization check for NumPy types...")
+        log_numpy_types(analysis_result)
+        current_app.logger.info("Pre-serialization check complete.")
+        
         # 결과 반환
         return jsonify(analysis_result), 200
     
     except Exception as e:
+        current_app.logger.error(f'이미지 분석 중 오류가 발생했습니다: {str(e)}', exc_info=True)
         return jsonify({'error': f'이미지 분석 중 오류가 발생했습니다: {str(e)}'}), 500
 
 def process_drawing_image(image_path):

@@ -52,4 +52,4 @@ def result_file(filename):
 
 if __name__ == '__main__':
     # 개발 서버 실행 (0.0.0.0으로 설정하여 외부 접속 허용)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5002, debug=True)
