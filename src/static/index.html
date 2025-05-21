@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도면 이미지 자동 해독 프로그램</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .drop-zone {
+            border: 2px dashed #3b82f6;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .drop-zone.active {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        .preview-image {
+            max-height: 300px;
+            object-fit: contain;
+        }
+        .progress-bar {
+            height: 6px;
+            background-color: #dbeafe;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <header class="bg-blue-700 text-white shadow-md">
+        <div class="container mx-auto px-4 py-4">
+            <h1 class="text-2xl font-bold">도면 이미지 자동 해독 프로그램</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h2 class="text-xl font-semibold mb-4">도면 이미지 업로드</h2>
+                <p class="mb-4 text-gray-600">
+                    도면 이미지를 업로드하면 자동으로 각도 정보를 분석하여 결과를 보여줍니다.
+                    이미지를 아래 영역에 드래그 앤 드롭하거나 파일 선택 버튼을 클릭하세요.
+                </p>
+                
+                <div id="drop-zone" class="drop-zone p-8 text-center cursor-pointer mb-4">
+                    <div id="drop-message">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <p class="mt-2 text-gray-600">이미지를 여기에 드래그하거나</p>
+                        <button id="file-select-btn" class="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                            파일 선택
+                        </button>
+                        <input type="file" id="file-input" class="hidden" accept="image/*">
+                    </div>
+                    
+                    <div id="preview-container" class="hidden">
+                        <img id="preview-image" class="preview-image mx-auto mb-4" src="" alt="미리보기">
+                        <p id="file-name" class="text-gray-700 mb-2"></p>
+                        <div class="flex space-x-2">
+                            <button id="change-file-btn" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                                파일 변경
+                            </button>
+                            <button id="upload-btn" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                분석 시작
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="upload-progress" class="hidden">
+                    <p class="text-sm text-gray-600 mb-1">업로드 중...</p>
+                    <div class="progress-bar">
+                        <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="results-container" class="bg-white p-6 rounded-lg shadow-md hidden">
+                <h2 class="text-xl font-semibold mb-4">분석 결과</h2>
+                <div id="loading-results" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-gray-600">도면 이미지 분석 중...</p>
+                </div>
+                
+                <div id="analysis-results" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-medium mb-2">원본 이미지</h3>
+                            <img id="original-image" class="w-full border rounded" src="" alt="원본 이미지">
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-medium mb-2">분석된 이미지</h3>
+                            <img id="analyzed-image" class="w-full border rounded" src="" alt="분석된 이미지">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="text-lg font-medium mb-2">각도 정보</h3>
+                        <div id="angle-info" class="bg-gray-50 p-4 rounded">
+                            <!-- 각도 정보가 여기에 동적으로 추가됩니다 -->
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button id="download-results-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                            결과 다운로드
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="error-message" class="hidden bg-red-50 text-red-700 p-4 rounded">
+                    <p>분석 중 오류가 발생했습니다. 다른 이미지로 다시 시도해 주세요.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8 mt-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2025 도면 이미지 자동 해독 프로그램. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const fileSelectBtn = document.getElementById('file-select-btn');
+            const changeFileBtn = document.getElementById('change-file-btn');
+            const uploadBtn = document.getElementById('upload-btn');
+            const dropMessage = document.getElementById('drop-message');
+            const previewContainer = document.getElementById('preview-container');
+            const previewImage = document.getElementById('preview-image');
+            const fileName = document.getElementById('file-name');
+            const uploadProgress = document.getElementById('upload-progress');
+            const progressBarFill = document.getElementById('progress-bar-fill');
+            const resultsContainer = document.getElementById('results-container');
+            const loadingResults = document.getElementById('loading-results');
+            const analysisResults = document.getElementById('analysis-results');
+            const errorMessage = document.getElementById('error-message');
+            const originalImage = document.getElementById('original-image');
+            const analyzedImage = document.getElementById('analyzed-image');
+            const angleInfo = document.getElementById('angle-info');
+            const downloadResultsBtn = document.getElementById('download-results-btn');
+            
+            let selectedFile = null;
+            
+            // 드래그 앤 드롭 이벤트 처리
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('active');
+            });
+            
+            dropZone.addEventListener('dragleave', function() {
+                dropZone.classList.remove('active');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('active');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // 파일 선택 버튼 클릭 이벤트
+            fileSelectBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length) {
+                    handleFile(fileInput.files[0]);
+                }
+            });
+            
+            // 파일 변경 버튼 클릭 이벤트
+            changeFileBtn.addEventListener('click', function() {
+                resetUploadUI();
+            });
+            
+            // 업로드 버튼 클릭 이벤트
+            uploadBtn.addEventListener('click', function() {
+                if (selectedFile) {
+                    uploadFile(selectedFile);
+                }
+            });
+            
+            // 파일 처리 함수
+            function handleFile(file) {
+                if (!file.type.match('image.*')) {
+                    alert('이미지 파일만 업로드 가능합니다.');
+                    return;
+                }
+                
+                selectedFile = file;
+                
+                // 파일 미리보기 표시
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    fileName.textContent = file.name;
+                    dropMessage.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // 파일 업로드 함수
+            function uploadFile(file) {
+                // 업로드 UI 표시
+                uploadProgress.classList.remove('hidden');
+                
+                // FormData 생성
+                const formData = new FormData();
+                formData.append('image', file);
+                
+                // 업로드 진행 상태 시뮬레이션 (실제로는 fetch API의 progress 이벤트 사용)
+                let progress = 0;
+                const progressInterval = setInterval(function() {
+                    progress += 5;
+                    progressBarFill.style.width = progress + '%';
+                    
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        setTimeout(function() {
+                            // 업로드 완료 후 분석 결과 UI 표시
+                            uploadProgress.classList.add('hidden');
+                            resultsContainer.classList.remove('hidden');
+                            
+                            // 실제로는 서버에 업로드하고 응답을 기다림
+                            // 여기서는 시뮬레이션을 위해 setTimeout 사용
+                            setTimeout(function() {
+                                simulateAnalysisResults();
+                            }, 2000);
+                        }, 500);
+                    }
+                }, 100);
+                
+                // 실제 업로드 코드 (현재는 주석 처리)
+                /*
+                fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('서버 오류');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayResults(data);
+                })
+                .catch(error => {
+                    showError();
+                });
+                */
+            }
+            
+            // 분석 결과 시뮬레이션 함수 (실제로는 서버 응답 데이터 사용)
+            function simulateAnalysisResults() {
+                loadingResults.classList.add('hidden');
+                analysisResults.classList.remove('hidden');
+                
+                // 원본 이미지 표시
+                originalImage.src = previewImage.src;
+                
+                // 분석된 이미지는 실제로는 서버에서 받아옴 (여기서는 같은 이미지 사용)
+                analyzedImage.src = previewImage.src;
+                
+                // 각도 정보 표시 (시뮬레이션)
+                angleInfo.innerHTML = `
+                    <div class="mb-2">
+                        <span class="font-medium">총 발견된 각도:</span> 3개
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-3 rounded shadow-sm">
+                            <div class="text-blue-600 font-medium">각도 1: 45°</div>
+                            <div class="text-sm text-gray-600">유형: 용접 각도</div>
+                            <div class="text-sm text-gray-600">위치: (120, 240)</div>
+                        </div>
+                        <div class="bg-white p-3 rounded shadow-sm">
+                            <div class="text-blue-600 font-medium">각도 2: 90°</div>
+                            <div class="text-sm text-gray-600">유형: 배치 각도</div>
+                            <div class="text-sm text-gray-600">위치: (350, 180)</div>
+                        </div>
+                        <div class="bg-white p-3 rounded shadow-sm">
+                            <div class="text-blue-600 font-medium">각도 3: 30°</div>
+                            <div class="text-sm text-gray-600">유형: 벤딩 각도</div>
+                            <div class="text-sm text-gray-600">위치: (220, 320)</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 오류 표시 함수
+            function showError() {
+                loadingResults.classList.add('hidden');
+                analysisResults.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+            }
+            
+            // UI 초기화 함수
+            function resetUploadUI() {
+                selectedFile = null;
+                fileInput.value = '';
+                previewImage.src = '';
+                fileName.textContent = '';
+                dropMessage.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                uploadProgress.classList.add('hidden');
+                resultsContainer.classList.add('hidden');
+                progressBarFill.style.width = '0%';
+                loadingResults.classList.remove('hidden');
+                analysisResults.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+            }
+            
+            // 결과 다운로드 버튼 클릭 이벤트
+            downloadResultsBtn.addEventListener('click', function() {
+                alert('분석 결과 다운로드 기능은 아직 구현되지 않았습니다.');
+            });
+        });
+    </script>
+</body>
+</html>

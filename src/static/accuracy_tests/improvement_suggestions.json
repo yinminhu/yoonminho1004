@@ -1,0 +1,15 @@
+{
+  "general_suggestions": [
+    "전체 정확도가 낮습니다. 알고리즘 전반적인 개선이 필요합니다."
+  ],
+  "angle_specific_improvements": [
+    "이미지 'various_angles.png'의 각도 검출 정확도가 낮습니다 (66.7%).",
+    "이미지 'various_angles.png'에서 다음 각도를 검출하지 못했습니다: 135, 45, 120, 90, 60",
+    "이미지 'large_angles.png'의 각도 검출 정확도가 낮습니다 (0.0%).",
+    "이미지 'large_angles.png'에서 다음 각도를 검출하지 못했습니다: 160, 170, 150"
+  ],
+  "algorithm_adjustments": [
+    "이미지 'small_angles.png'에서 일부 각도의 오차가 큽니다: 예상 10° vs 검출 15.0° (오차 5.0°), 예상 5° vs 검출 1.3° (오차 3.7°)",
+    "큰 각도(150° 이상) 검출 정확도 개선 필요: 보완 각도 계산 로직 추가 고려"
+  ]
+}
